@@ -4,205 +4,149 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faiz Ahmad — RPG Portfolio</title>
-    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0a; overflow: hidden; font-family: 'Press Start 2P', monospace; }
+        #game-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+        /* Start Screen */
+        #start-screen {
+            position: fixed; inset: 0; z-index: 100;
+            background: #0a0a0a;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            transition: opacity 0.5s;
+        }
+        #start-screen.hidden { opacity: 0; pointer-events: none; }
+        #start-screen h1 { font-size: 2.5rem; color: #f0e040; text-shadow: 3px 3px 0 #8b6914; margin-bottom: 8px; }
+        #start-screen .sub { font-size: 0.7rem; color: #88ccff; margin-bottom: 40px; }
+        #start-screen button {
+            font-family: 'Press Start 2P', monospace; font-size: 0.9rem;
+            padding: 14px 40px; background: #f0e040; color: #1a1a2e; border: none;
+            cursor: pointer; animation: blink 1.2s step-end infinite;
+        }
+        #start-screen .hint { font-size: 0.4rem; color: #555; margin-top: 24px; line-height: 2; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Dialog Overlay */
+        #dialog-overlay {
+            display: none; position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.65);
+            align-items: center; justify-content: center;
+        }
+        #dialog-overlay.active { display: flex; }
+        #dialog-box {
+            background: #16162b; border: 3px solid #f0e040; border-radius: 4px;
+            width: 90%; max-width: 620px; max-height: 80vh;
+            box-shadow: 0 0 60px rgba(240,224,64,0.12), 6px 6px 0 rgba(0,0,0,0.5);
+            animation: dopen 0.15s ease;
+        }
+        @keyframes dopen { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        #dialog-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px; border-bottom: 2px solid #222; background: #111128;
+        }
+        #dialog-title { color: #f0e040; font-size: 0.6rem; }
+        #dialog-close-btn {
+            font-family: 'Press Start 2P', monospace; font-size: 0.35rem;
+            background: #333; color: #aaa; border: 1px solid #555; padding: 4px 8px; cursor: pointer;
+        }
+        #dialog-close-btn:hover { background: #c33; color: #fff; }
+        #dialog-body {
+            padding: 14px; color: #ccc; font-size: 0.48rem; line-height: 2.2;
+            max-height: 55vh; overflow-y: auto;
+        }
+        #dialog-body::-webkit-scrollbar { width: 5px; }
+        #dialog-body::-webkit-scrollbar-thumb { background: #f0e040; border-radius: 3px; }
+        #dialog-body h3 { color: #f0e040; font-size: 0.55rem; margin: 10px 0 6px; }
+        #dialog-body h3:first-child { margin-top: 0; }
+        .tag { display:inline-block; background:rgba(240,224,64,0.08); border:1px solid rgba(240,224,64,0.25); padding:2px 7px; margin:2px; font-size:0.37rem; color:#f0e040; }
+        .exp-item { background:rgba(255,255,255,0.02); border-left:3px solid #f0e040; padding:10px 12px; margin:8px 0; }
+        .exp-role { color:#fff; font-size:0.48rem; }
+        .exp-company { color:#88ccff; font-size:0.42rem; margin:3px 0; }
+        .exp-date { color:#777; font-size:0.35rem; }
+        .exp-desc { color:#aaa; font-size:0.38rem; margin-top:6px; line-height:2; }
+        .pcard { background:rgba(255,255,255,0.02); border:1px solid #2a2a2a; padding:10px; margin:7px 0; }
+        .pcard:hover { border-color:#f0e040; }
+        .pname { color:#fff; font-size:0.48rem; }
+        .pdate { color:#777; font-size:0.33rem; margin:3px 0; }
+        .pdesc { color:#aaa; font-size:0.38rem; line-height:2; }
+        .sgroup { margin:8px 0; }
+        .slabel { color:#88ccff; font-size:0.4rem; margin-bottom:5px; }
+        .clink { display:block; color:#88ccff; font-size:0.42rem; padding:5px 0; text-decoration:none; }
+        .clink:hover { color:#f0e040; }
+        #dialog-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 14px; border-top: 2px solid #222;
+        }
+        #dialog-footer .hint { color:#444; font-size:0.32rem; }
+        .dnav { display:flex; align-items:center; gap:6px; }
+        .dnav-btn {
+            font-family:'Press Start 2P',monospace; font-size:0.33rem;
+            background:rgba(240,224,64,0.08); color:#f0e040; border:1px solid #f0e040;
+            padding:4px 10px; cursor:pointer;
+        }
+        .dnav-btn:hover { background:#f0e040; color:#16162b; }
+        #page-info { color:#666; font-size:0.32rem; }
+
+        /* Mobile controls */
+        #mobile-controls { display:none; position:fixed; bottom:16px; left:16px; z-index:50; }
+        .mc-dpad { display:grid; grid-template-areas: ". u ." "l . r" ". d ."; gap:3px; }
+        .mc-btn {
+            width:44px; height:44px; background:rgba(255,255,255,0.12); border:2px solid rgba(255,255,255,0.25);
+            color:#fff; font-size:0.9rem; display:flex; align-items:center; justify-content:center;
+            border-radius:4px; cursor:pointer; -webkit-user-select:none; user-select:none;
+        }
+        .mc-u{grid-area:u} .mc-l{grid-area:l} .mc-r{grid-area:r} .mc-d{grid-area:d}
+        #mc-action {
+            position:fixed; bottom:36px; right:140px; width:52px; height:52px; border-radius:50%;
+            background:rgba(240,224,64,0.25); border:2px solid #f0e040; color:#f0e040;
+            font-family:'Press Start 2P',monospace; font-size:0.9rem; cursor:pointer; z-index:50;
+        }
+        @media(max-width:768px){ #mobile-controls{display:block;} }
+    </style>
 </head>
 <body>
-    <!-- Start Screen -->
-    <div class="start-screen" id="startScreen">
-        <div class="start-content">
-            <h1 class="game-title">FAIZ AHMAD</h1>
-            <p class="game-subtitle">~ Portfolio Quest ~</p>
-            <div class="start-pixel-art">
-                <div class="pixel-character start-char"></div>
+
+<div id="start-screen">
+    <h1>FAIZ AHMAD</h1>
+    <p class="sub">~ Portfolio Quest ~</p>
+    <button id="start-btn">PRESS START</button>
+    <p class="hint">WASD / Arrows = Move &nbsp;|&nbsp; SPACE = Interact</p>
+</div>
+
+<div id="game-container"></div>
+
+<div id="dialog-overlay">
+    <div id="dialog-box">
+        <div id="dialog-header">
+            <span id="dialog-title"></span>
+            <button id="dialog-close-btn">ESC</button>
+        </div>
+        <div id="dialog-body"></div>
+        <div id="dialog-footer">
+            <span class="hint">ESC / SPACE to close</span>
+            <div class="dnav">
+                <button class="dnav-btn" id="prev-btn" style="display:none">&#9664; Prev</button>
+                <span id="page-info"></span>
+                <button class="dnav-btn" id="next-btn" style="display:none">Next &#9654;</button>
             </div>
-            <p class="start-instruction">Explore the world to discover my journey</p>
-            <button class="start-btn" id="startBtn">PRESS START</button>
-            <p class="controls-hint">WASD / Arrow Keys to move &nbsp;|&nbsp; SPACE / E to interact</p>
         </div>
     </div>
+</div>
 
-    <!-- Game World -->
-    <div class="game-container" id="gameContainer">
-        <!-- HUD -->
-        <div class="hud">
-            <div class="hud-left">
-                <span class="hud-name">Faiz Ahmad</span>
-                <span class="hud-title">Software Engineer</span>
-            </div>
-            <div class="hud-right">
-                <span class="hud-location" id="hudLocation">Town Center</span>
-            </div>
-        </div>
-
-        <!-- Minimap -->
-        <div class="minimap" id="minimap">
-            <div class="minimap-dot" id="minimapDot"></div>
-            <div class="minimap-label ml-about" style="top:25%;left:15%">A</div>
-            <div class="minimap-label ml-exp" style="top:20%;left:70%">E</div>
-            <div class="minimap-label ml-proj" style="top:65%;left:75%">P</div>
-            <div class="minimap-label ml-skills" style="top:70%;left:20%">S</div>
-            <div class="minimap-label ml-pub" style="top:45%;left:45%">R</div>
-        </div>
-
-        <!-- World -->
-        <div class="world" id="world">
-            <!-- Ground tiles are rendered via CSS -->
-
-            <!-- Trees & decorations -->
-            <div class="tree" style="left:80px;top:60px"></div>
-            <div class="tree" style="left:180px;top:40px"></div>
-            <div class="tree" style="left:1700px;top:80px"></div>
-            <div class="tree" style="left:1800px;top:180px"></div>
-            <div class="tree" style="left:80px;top:1600px"></div>
-            <div class="tree" style="left:1750px;top:1700px"></div>
-            <div class="tree" style="left:300px;top:50px"></div>
-            <div class="tree" style="left:1500px;top:50px"></div>
-            <div class="tree" style="left:50px;top:400px"></div>
-            <div class="tree" style="left:1850px;top:500px"></div>
-            <div class="tree" style="left:50px;top:900px"></div>
-            <div class="tree" style="left:1850px;top:1000px"></div>
-            <div class="tree" style="left:50px;top:1300px"></div>
-            <div class="tree" style="left:1850px;top:1400px"></div>
-            <div class="tree" style="left:400px;top:1800px"></div>
-            <div class="tree" style="left:1400px;top:1800px"></div>
-            <div class="tree" style="left:900px;top:50px"></div>
-            <div class="tree" style="left:900px;top:1820px"></div>
-
-            <!-- Paths -->
-            <div class="path path-h" style="left:300px;top:920px;width:1300px"></div>
-            <div class="path path-v" style="left:940px;top:200px;height:1500px"></div>
-            <div class="path path-h" style="left:200px;top:400px;width:500px"></div>
-            <div class="path path-h" style="left:1200px;top:400px;width:500px"></div>
-            <div class="path path-v" style="left:300px;top:400px;height:520px"></div>
-            <div class="path path-v" style="left:1600px;top:400px;height:520px"></div>
-            <div class="path path-h" style="left:300px;top:1400px;width:640px"></div>
-            <div class="path path-h" style="left:940px;top:1400px;width:660px"></div>
-            <div class="path path-v" style="left:300px;top:920px;height:480px"></div>
-            <div class="path path-v" style="left:1600px;top:920px;height:480px"></div>
-
-            <!-- === ZONES === -->
-
-            <!-- About Zone (top-left) -->
-            <div class="zone zone-about" style="left:180px;top:240px">
-                <div class="building building-about">
-                    <div class="building-roof roof-blue"></div>
-                    <div class="building-body">
-                        <div class="building-door"></div>
-                    </div>
-                    <div class="building-sign">ABOUT ME</div>
-                </div>
-                <div class="npc npc-about interactive" data-zone="about" style="left:60px;top:130px">
-                    <div class="npc-sprite npc-blue"></div>
-                    <div class="interact-hint">SPACE</div>
-                </div>
-            </div>
-
-            <!-- Experience Zone (top-right) -->
-            <div class="zone zone-exp" style="left:1300px;top:240px">
-                <div class="building building-exp">
-                    <div class="building-roof roof-red"></div>
-                    <div class="building-body">
-                        <div class="building-door"></div>
-                    </div>
-                    <div class="building-sign">EXPERIENCE</div>
-                </div>
-                <div class="npc npc-exp interactive" data-zone="experience" style="left:60px;top:130px">
-                    <div class="npc-sprite npc-red"></div>
-                    <div class="interact-hint">SPACE</div>
-                </div>
-            </div>
-
-            <!-- Projects Zone (bottom-right) -->
-            <div class="zone zone-proj" style="left:1300px;top:1250px">
-                <div class="building building-proj">
-                    <div class="building-roof roof-green"></div>
-                    <div class="building-body">
-                        <div class="building-door"></div>
-                    </div>
-                    <div class="building-sign">PROJECTS</div>
-                </div>
-                <div class="npc npc-proj interactive" data-zone="projects" style="left:60px;top:130px">
-                    <div class="npc-sprite npc-green"></div>
-                    <div class="interact-hint">SPACE</div>
-                </div>
-            </div>
-
-            <!-- Skills Zone (bottom-left) -->
-            <div class="zone zone-skills" style="left:180px;top:1250px">
-                <div class="building building-skills">
-                    <div class="building-roof roof-purple"></div>
-                    <div class="building-body">
-                        <div class="building-door"></div>
-                    </div>
-                    <div class="building-sign">SKILLS</div>
-                </div>
-                <div class="npc npc-skills interactive" data-zone="skills" style="left:60px;top:130px">
-                    <div class="npc-sprite npc-purple"></div>
-                    <div class="interact-hint">SPACE</div>
-                </div>
-            </div>
-
-            <!-- Publication/Research Zone (center) -->
-            <div class="zone zone-pub" style="left:780px;top:750px">
-                <div class="building building-pub building-large">
-                    <div class="building-roof roof-gold"></div>
-                    <div class="building-body body-large">
-                        <div class="building-door"></div>
-                    </div>
-                    <div class="building-sign sign-gold">RESEARCH & CONTACT</div>
-                </div>
-                <div class="npc npc-pub interactive" data-zone="publication" style="left:80px;top:160px">
-                    <div class="npc-sprite npc-gold"></div>
-                    <div class="interact-hint">SPACE</div>
-                </div>
-            </div>
-
-            <!-- Welcome Sign (spawn point) -->
-            <div class="signpost interactive" data-zone="welcome" style="left:900px;top:550px">
-                <div class="signpost-pole"></div>
-                <div class="signpost-board">!</div>
-                <div class="interact-hint">SPACE</div>
-            </div>
-
-            <!-- Player -->
-            <div class="player" id="player">
-                <div class="player-shadow"></div>
-                <div class="pixel-character" id="playerSprite"></div>
-                <div class="player-name">Faiz</div>
-            </div>
-        </div>
-
-        <!-- Dialog Box -->
-        <div class="dialog-overlay" id="dialogOverlay">
-            <div class="dialog-box" id="dialogBox">
-                <div class="dialog-header">
-                    <span class="dialog-title" id="dialogTitle">Welcome</span>
-                    <button class="dialog-close" id="dialogClose">ESC</button>
-                </div>
-                <div class="dialog-body" id="dialogBody"></div>
-                <div class="dialog-footer">
-                    <span class="dialog-hint">Press ESC or SPACE to close</span>
-                    <div class="dialog-nav">
-                        <button class="dialog-nav-btn" id="prevBtn" style="display:none">&#9664; Prev</button>
-                        <span class="dialog-page" id="dialogPage"></span>
-                        <button class="dialog-nav-btn" id="nextBtn" style="display:none">Next &#9654;</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mobile Controls -->
-        <div class="mobile-controls">
-            <div class="dpad">
-                <button class="dpad-btn dpad-up" data-dir="up">&#9650;</button>
-                <button class="dpad-btn dpad-left" data-dir="left">&#9664;</button>
-                <button class="dpad-btn dpad-right" data-dir="right">&#9654;</button>
-                <button class="dpad-btn dpad-down" data-dir="down">&#9660;</button>
-            </div>
-            <button class="action-btn" id="actionBtn">A</button>
-        </div>
+<div id="mobile-controls">
+    <div class="mc-dpad">
+        <div class="mc-btn mc-u" data-d="up">&#9650;</div>
+        <div class="mc-btn mc-l" data-d="left">&#9664;</div>
+        <div class="mc-btn mc-r" data-d="right">&#9654;</div>
+        <div class="mc-btn mc-d" data-d="down">&#9660;</div>
     </div>
+</div>
+<button id="mc-action" style="display:none">A</button>
 
-    <script src="game.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+<script src="game.js"></script>
 </body>
 </html>
